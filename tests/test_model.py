@@ -3,11 +3,11 @@ import os
 import polars as pl
 import pytest
 
-import koltrast as kt
+import domherre as kt
 
 pytestmark = pytest.mark.skipif(
-    not os.environ.get("KOLTRAST_INTEGRATION"),
-    reason="set KOLTRAST_INTEGRATION=1 to run against the real model",
+    not os.environ.get("DOMHERRE_INTEGRATION"),
+    reason="set DOMHERRE_INTEGRATION=1 to run against the real model",
 )
 
 

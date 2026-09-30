@@ -1,8 +1,8 @@
 import polars as pl
 import pytest
 
-import koltrast as kt
-from koltrast.core import _apply_spans
+import domherre as kt
+from domherre.core import _apply_spans
 
 
 @pytest.fixture

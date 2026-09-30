@@ -38,7 +38,7 @@ def _caller_stacklevel() -> int:
 
 def _warn_pandas(df: Any) -> None:
     global _PANDAS_WARNED
-    if _PANDAS_WARNED or os.environ.get("KOLTRAST_QUIET"):
+    if _PANDAS_WARNED or os.environ.get("DOMHERRE_QUIET"):
         return
     _PANDAS_WARNED = True
 
@@ -53,7 +53,7 @@ def _warn_pandas(df: Any) -> None:
         else " Columns are numpy-object backed; string[pyarrow] or polars is faster."
     )
     warnings.warn(
-        f"koltrast is polars-first; pandas {pd.__version__} input is converted internally."
+        f"domherre is polars-first; pandas {pd.__version__} input is converted internally."
         + extra,
         PandasPerformanceWarning,
         stacklevel=_caller_stacklevel(),

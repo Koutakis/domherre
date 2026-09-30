@@ -1,4 +1,4 @@
-# koltrast
+# domherre
 
 Redacts Swedish personal names and personnummer from string columns in a polars DataFrame.
 
@@ -8,14 +8,14 @@ Redacts Swedish personal names and personnummer from string columns in a polars 
 ## Install
 
 ```bash
-pip install koltrast
+pip install domherre
 ```
 
 ## Usage
 
 ```python
 import polars as pl
-import koltrast as kt
+import domherre as kt
 
 df = pl.DataFrame({
     "id": [1, 2],
@@ -59,7 +59,7 @@ kt.redact(pandas_df, "note")   # -> pandas.DataFrame
 ```
 
 A one-time `PandasPerformanceWarning` fires per process. Silence it with
-`KOLTRAST_QUIET=1` if you have already made your peace with pandas.
+`DOMHERRE_QUIET=1` if you have already made your peace with pandas.
 
 Null convention follows the input frame — polars gives back `None`, pandas gives back
 `NaN`/`NA`. Use `pd.isna()` rather than `is None` when checking pandas output.
@@ -75,8 +75,8 @@ not affected by the backend choice.
 | Backend | Install | Notes |
 |---|---|---|
 | `kb-bert` (default) | included | `KB/bert-base-swedish-cased-ner`. Swedish-only, trained on formal text. |
-| `gliner` | `koltrast[gliner]` | Zero-shot, multilingual, CPU-optimised. Change `labels` to detect anything. |
-| `presidio` | `koltrast[presidio]` | Full PII framework. Bring your own configured `AnalyzerEngine`. |
+| `gliner` | `domherre[gliner]` | Zero-shot, multilingual, CPU-optimised. Change `labels` to detect anything. |
+| `presidio` | `domherre[presidio]` | Full PII framework. Bring your own configured `AnalyzerEngine`. |
 | `none` | included | Skips name detection. Regex only. |
 
 ```python
@@ -104,7 +104,7 @@ and the PII variants are trained for exactly this job.
 ### presidio
 
 Presidio is a whole PII framework, not a model — it wraps recognizers and does its own
-anonymization. koltrast uses only its analyzer, so you are using a slice of it. If you
+anonymization. domherre uses only its analyzer, so you are using a slice of it. If you
 want Presidio's operators, allow-lists and decision tracing, use Presidio directly
 instead of through this.
 
@@ -253,7 +253,7 @@ The suite stubs the NER pipeline, so it runs offline in CI with no model downloa
 Integration tests that hit the real model are skipped unless you ask for them:
 
 ```bash
-KOLTRAST_INTEGRATION=1 pytest tests/test_model.py
+DOMHERRE_INTEGRATION=1 pytest tests/test_model.py
 ```
 
 Run those at least once against your deployment image — the stub proves the span

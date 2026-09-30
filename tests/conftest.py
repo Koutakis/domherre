@@ -2,8 +2,8 @@ import re
 
 import pytest
 
-import koltrast
-from koltrast import backends as _backends
+import domherre
+from domherre import backends as _backends
 
 # names the fake model "recognises" - enough to exercise span logic deterministically
 KNOWN_NAMES = [
@@ -38,7 +38,7 @@ def stub_model(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def reset_pandas_warning():
-    from koltrast import _frames
+    from domherre import _frames
 
     _frames._PANDAS_WARNED = False
     yield
@@ -56,4 +56,4 @@ def rows() -> list[dict]:
 
 @pytest.fixture
 def kt():
-    return koltrast
+    return domherre

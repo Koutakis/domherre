@@ -1,7 +1,7 @@
 import polars as pl
 
-import koltrast as kt
-from koltrast import Report
+import domherre as kt
+from domherre import Report
 
 
 def test_report_counts(rows):

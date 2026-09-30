@@ -1,7 +1,7 @@
 import polars as pl
 import pytest
 
-import koltrast as kt
+import domherre as kt
 
 pd = pytest.importorskip("pandas")
 
@@ -49,7 +49,7 @@ def test_pandas_index_preserved(rows):
 
 
 def test_pandas_nulls(pdf):
-    # pandas keeps its own null convention (NaN/NA), koltrast does not force None
+    # pandas keeps its own null convention (NaN/NA), domherre does not force None
     assert pd.isna(kt.redact(pdf, "note")["note_redacted"][3])
 
 
@@ -82,7 +82,7 @@ def test_polars_emits_no_warning(rows):
 
 
 def test_quiet_env_suppresses(pdf, monkeypatch):
-    monkeypatch.setenv("KOLTRAST_QUIET", "1")
+    monkeypatch.setenv("DOMHERRE_QUIET", "1")
     with warnings_as_errors():
         kt.redact(pdf, "note")
 

@@ -1,6 +1,6 @@
 import pytest
 
-from koltrast import find_personnummer, is_valid_personnummer
+from domherre import find_personnummer, is_valid_personnummer
 
 VALID = "8501010006"
 

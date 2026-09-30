@@ -6,8 +6,8 @@ import sys
 
 import polars as pl
 
-import koltrast as kt
-from koltrast.backends import resolve
+import domherre as kt
+from domherre.backends import resolve
 
 HERE = Path(__file__).parent
 INPUT_FILE = HERE / "test_strings.txt"
