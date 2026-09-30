@@ -70,28 +70,40 @@ class Report:
             rows_with_pii=self.rows_with_pii + other.rows_with_pii,
             names=self.names + other.names,
             personnummer=self.personnummer + other.personnummer,
+            email=self.email + other.email,
             extra=merged,
         )
 
 
-def _apply_spans(text: str, spans: list[tuple[int, int, str]]) -> str:
-    if not spans:
-        return text
-
-    spans = sorted(spans, key=lambda s: (s[0], -(s[1] - s[0])))
+def _resolve_spans(spans: list[tuple[int, int, str]]) -> list[tuple[int, int, str]]:
+    # earliest start wins; at equal start the longest wins; at equal start AND
+    # length the earlier-added span wins, which is why _spans_for adds
+    # extra_patterns first -- an explicit user pattern outranks a built-in.
+    ordered = sorted(spans, key=lambda s: (s[0], -(s[1] - s[0])))
 
     kept: list[tuple[int, int, str]] = []
-    for span in spans:
+    for span in ordered:
         if kept and span[0] < kept[-1][1]:
-            continue  # overlapping, longest-at-this-start already won
+            continue
         kept.append(span)
+    return kept
 
+
+def _apply_resolved(text: str, kept: list[tuple[int, int, str]]) -> str:
     for start, end, tag in reversed(kept):  # right-to-left keeps offsets valid
         text = text[:start] + tag + text[end:]
     return text
 
 
-def _numbered(spans: list[tuple[int, int, str]], text: str, tag: str) -> list[tuple[int, int, str]]:
+def _apply_spans(text: str, spans: list[tuple[int, int, str]]) -> str:
+    if not spans:
+        return text
+    return _apply_resolved(text, _resolve_spans(spans))
+
+
+def _numbered(
+    spans: list[tuple[int, int, str]], text: str, tag: str
+) -> list[tuple[int, int, str]]:
     seen: dict[str, int] = {}
     out: list[tuple[int, int, str]] = []
     for start, end, t in spans:
@@ -105,8 +117,14 @@ def _numbered(spans: list[tuple[int, int, str]], text: str, tag: str) -> list[tu
     return out
 
 
-def _spans_for(text: str, names: list[tuple[int, int]], config: Config) -> list[tuple[int, int, str]]:
+def _spans_for(
+    text: str, names: list[tuple[int, int]], config: Config
+) -> list[tuple[int, int, str]]:
     spans: list[tuple[int, int, str]] = []
+
+    # first, so an explicit user pattern beats a built-in on an identical span
+    for tag, pattern in config.extra_patterns.items():
+        spans += [(m.start(), m.end(), tag) for m in re.finditer(pattern, text)]
 
     if config.redact_personnummer:
         spans += [
@@ -114,16 +132,8 @@ def _spans_for(text: str, names: list[tuple[int, int]], config: Config) -> list[
             for s, e in find_personnummer(text, validate=config.validate_personnummer)
         ]
 
-    # Nike added
     if config.redact_email:
-        spans += [
-            (start, end, config.email_tag)
-            for start, end in find_email(text)
-        ]
-    # end
-
-    for tag, pattern in config.extra_patterns.items():
-        spans += [(m.start(), m.end(), tag) for m in re.finditer(pattern, text)]
+        spans += [(start, end, config.email_tag) for start, end in find_email(text)]
 
     spans += [(s, e, config.name_tag) for s, e in names]
 
@@ -156,16 +166,19 @@ def _redact_texts(texts: list[str], config: Config) -> tuple[list[str], Report]:
         if not spans:
             continue
 
+        kept = _resolve_spans(spans)
         report.rows_with_pii += 1
-        for _, _, tag in spans:
+        for _, _, tag in kept:
             if tag.startswith(config.name_tag[:-1]):
                 report.names += 1
             elif tag == config.personnummer_tag:
                 report.personnummer += 1
+            elif tag == config.email_tag:
+                report.email += 1
             else:
                 report.extra[tag] = report.extra.get(tag, 0) + 1
 
-        out[i] = _apply_spans(text, spans)
+        out[i] = _apply_resolved(text, kept)
 
     return out, report
 
@@ -193,19 +206,13 @@ def _resolve(df: Any, columns: str | list[str]) -> list[str]:
     return cols
 
 
-def redact(
-    df: Frame,
-    columns: str | list[str],
-    config: Config | None = None,
-) -> Frame:
+def redact(df: Frame, columns: str | list[str], config: Config | None = None) -> Frame:
     out, _ = redact_with_report(df, columns, config)
     return out
 
 
 def redact_with_report(
-    df: Frame,
-    columns: str | list[str],
-    config: Config | None = None,
+    df: Frame, columns: str | list[str], config: Config | None = None
 ) -> tuple[Frame, Report]:
     cols = _resolve(df, columns)
     config = config or Config()
@@ -226,11 +233,7 @@ def redact_with_report(
     return _frames.rename(out, renames), total
 
 
-def scan(
-    df: Frame,
-    columns: str | list[str],
-    config: Config | None = None,
-) -> Report:
+def scan(df: Frame, columns: str | list[str], config: Config | None = None) -> Report:
     cols = _resolve(df, columns)
     config = config or Config()
 

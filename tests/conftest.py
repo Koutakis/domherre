@@ -11,6 +11,7 @@ KNOWN_NAMES = [
     "Anna Andersson",
     "Erik Bremstedt",
     "Karl Karlsson",
+    "Göran",
     "Anna",
 ]
 _NAME_RE = re.compile("|".join(sorted(KNOWN_NAMES, key=len, reverse=True)))
