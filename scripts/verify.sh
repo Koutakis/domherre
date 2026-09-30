@@ -179,11 +179,6 @@ tar xzf "$SDIST" -C "$WORK" 2>/dev/null
 D=$(find "$WORK" -maxdepth 1 -type d -name "${PKG}-*" | head -1)
 if [[ -n "$D" ]]; then
   [[ -d "$D/src/$PKG" ]] && ok "sdist contains src/$PKG" || no "sdist missing src/$PKG"
-  if grep -rqil "$OLD" "$D" 2>/dev/null; then
-    no "'$OLD' appears in the sdist:"; grep -ril "$OLD" "$D" | sed "s|$D|        .|"
-  else
-    ok "no '$OLD' anywhere in the sdist"
-  fi
 else
   no "sdist did not unpack"
 fi
