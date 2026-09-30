@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "domherre"
-version = "0.1.1"
+version = "0.1.2"
 readme = "README.md"
 license = { file = "LICENSE" }
 description = "Redact Swedish names and personnummer from polars DataFrames"
