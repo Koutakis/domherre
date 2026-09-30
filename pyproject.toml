@@ -11,18 +11,28 @@ description = "Redact Swedish names and personnummer from polars DataFrames"
 requires-python = ">=3.10"
 dependencies = [
     "polars>=1.0.0",
-    "transformers>=5.0.0,<5.17.0",
-    "torch>=2.0.0",
 ]
 
 [project.optional-dependencies]
-pandas = ["pandas>=2.0.0"]
+transformers = ["transformers>=4.30.0", "torch>=2.0.0"]
 gliner = ["gliner>=0.2.0"]
 presidio = ["presidio-analyzer>=2.2.0"]
-dev = ["pytest>=7.0.0", "pandas>=2.0.0"]
+pandas = ["pandas>=2.0.0"]
+all = ["domherre[transformers,gliner,presidio,pandas]"]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pandas>=2.0.0",
+    "mypy>=1.10.0",
+    "ruff>=0.6.0",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/domherre"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/", "tests/", "README.md", "LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
