@@ -16,6 +16,7 @@ from ._personnummer import find_personnummer, is_valid_personnummer
 from ._email import find_email, is_valid_email
 
 from .core import (
+    EMAIL_TAG,
     MODEL_NAME,
     NAME_TAG,
     PERSONNUMMER_TAG,
