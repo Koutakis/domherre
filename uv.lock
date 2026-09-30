@@ -457,6 +457,46 @@ wheels = [
 ]
 
 [[package]]
+name = "domherre"
+version = "0.1.1"
+source = { editable = "." }
+dependencies = [
+    { name = "polars" },
+    { name = "torch" },
+    { name = "transformers" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pandas", version = "3.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pytest" },
+]
+gliner = [
+    { name = "gliner" },
+]
+pandas = [
+    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pandas", version = "3.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+presidio = [
+    { name = "presidio-analyzer" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "gliner", marker = "extra == 'gliner'", specifier = ">=0.2.0" },
+    { name = "pandas", marker = "extra == 'dev'", specifier = ">=2.0.0" },
+    { name = "pandas", marker = "extra == 'pandas'", specifier = ">=2.0.0" },
+    { name = "polars", specifier = ">=1.0.0" },
+    { name = "presidio-analyzer", marker = "extra == 'presidio'", specifier = ">=2.2.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
+    { name = "torch", specifier = ">=2.0.0" },
+    { name = "transformers", specifier = ">=5.0.0,<5.17.0" },
+]
+provides-extras = ["pandas", "gliner", "presidio", "dev"]
+
+[[package]]
 name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -616,46 +656,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c
 wheels = [
     { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
 ]
-
-[[package]]
-name = "domherre"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "polars" },
-    { name = "torch" },
-    { name = "transformers" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "pandas", version = "3.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "pytest" },
-]
-gliner = [
-    { name = "gliner" },
-]
-pandas = [
-    { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "pandas", version = "3.0.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
-presidio = [
-    { name = "presidio-analyzer" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "gliner", marker = "extra == 'gliner'", specifier = ">=0.2.0" },
-    { name = "pandas", marker = "extra == 'dev'", specifier = ">=2.0.0" },
-    { name = "pandas", marker = "extra == 'pandas'", specifier = ">=2.0.0" },
-    { name = "polars", specifier = ">=1.0.0" },
-    { name = "presidio-analyzer", marker = "extra == 'presidio'", specifier = ">=2.2.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0.0" },
-    { name = "torch", specifier = ">=2.0.0" },
-    { name = "transformers", specifier = ">=5.0.0,<5.17.0" },
-]
-provides-extras = ["pandas", "gliner", "presidio", "dev"]
 
 [[package]]
 name = "markdown-it-py"
