@@ -1,0 +1,131 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------- version
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      publish: ${{ steps.v.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: v
+        name: Compare pyproject version against PyPI
+        run: |
+          set -euo pipefail
+          NAME=$(python -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['name'])")
+          VER=$(python -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "$NAME $VER"
+
+          CODE=$(curl -sS -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/$NAME/$VER/json")
+          if [[ "$CODE" == "200" ]]; then
+            echo "already on PyPI -- nothing to release"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          elif [[ "$CODE" == "404" ]]; then
+            echo "not on PyPI -- this is a release"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "unexpected status $CODE from PyPI; refusing to guess"
+            exit 1
+          fi
+
+      - name: Summary
+        run: |
+          {
+            echo "### ${{ steps.v.outputs.version }}"
+            if [[ "${{ steps.v.outputs.publish }}" == "true" ]]; then
+              echo "New version - will publish if tests pass."
+            else
+              echo "Already on PyPI - tests only, no publish."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ------------------------------------------------------------------ tests
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python }}
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+
+  # ------------------------------------------------------- build + validate
+  build:
+    needs: [check, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Build and validate the artifact
+        run: bash scripts/verify.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------- publish
+  publish:
+    needs: [check, build]
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.check.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # OIDC for trusted publishing; without this you get a 403
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  # -------------------------------------------------- tag + GitHub Release
+  tag:
+    needs: [check, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ needs.check.outputs.version }}
+        run: |
+          set -euo pipefail
+          git tag "v$V"
+          git push origin "v$V"
+          gh release create "v$V" dist/* \
+            --title "v$V" \
+            --generate-notes
