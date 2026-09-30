@@ -1,9 +1,14 @@
 # domherre
 
-Redacts Swedish personal names, personnummer and e-mail adresses from string columns in a polars DataFrame.
+[![PyPI](https://img.shields.io/pypi/v/domherre)](https://pypi.org/project/domherre/)
+[![Python](https://img.shields.io/pypi/pyversions/domherre)](https://pypi.org/project/domherre/)
+
+Redacts Swedish personal names, personnummer and e-mail addresses from string columns
+in a polars DataFrame.
 
 - **Personnummer** — regex (date-shaped) + Luhn checksum.
-- **Names** — `KB/bert-base-swedish-cased-ner`, `PRS` entities only. 
+- **Names** — `KB/bert-base-swedish-cased-ner`, `PRS` entities only.
+- **E-mail** — regex, shape-based.
 
 ## Install
 
@@ -15,7 +20,7 @@ pip install domherre
 
 ```python
 import polars as pl
-import domherre as kt
+import domherre as dh
 
 df = pl.DataFrame({
     "id": [1, 2],
@@ -25,103 +30,92 @@ df = pl.DataFrame({
     ],
 })
 
-kt.redact(df, "note")
+dh.redact(df, "note")
 # note -> note_redacted
 # "[NAMN], personnummer [PERSONNUMMER], ringde idag."
 ```
 
-- Redacted columns are **renamed** with a suffix (default `_redacted`) so a redacted column
-- can never be mistaken for the source. The original column is replaced, not kept.
-- Unlisted columns are untouched. Raises if a target name already exists.
+Redacted columns are **renamed** with a suffix (default `_redacted`) so a redacted
+column can never be mistaken for the source. The original column is replaced, not
+kept. Unlisted columns are untouched. Raises if a target name already exists.
 
 Several columns at once:
 
 ```python
-kt.redact(df, ["note", "kommentar"])
+dh.redact(df, ["note", "kommentar"])
 ```
 
 Single string:
 
 ```python
-kt.redact_text("Anna Andersson, 850101-0006")
+dh.redact_text("Anna Andersson, 850101-0006")
 ```
 
+pandas input works and comes back as pandas. A one-time `PandasPerformanceWarning`
+fires per process; silence it with `DOMHERRE_QUIET=1` if you have already made your
+peace with pandas.
 
-A one-time `PandasPerformanceWarning` fires per process. Silence it with
-`DOMHERRE_QUIET=1` if you have already made your peace with pandas.
+## Read before you trust us
 
-## Backend models
+The default model is trained on SUC 3.0 — formal written Swedish. On informal text
+(chat logs, free-text notes, heavy abbreviation) it **will miss names, silently and
+without error**. Personnummer and e-mail are regex and deterministic; names are not.
 
-Name detection is pluggable. Personnummer detection is always regex + Luhn and is
-not affected by the backend choice. This project defaults to kb-bert model as it has shown to be the formidable model for swedish name detection.
+Sample the output before calling this compliance-grade, and use `scan` to assert on
+what you are shipping rather than assuming.
 
-| Backend | Install | Notes |
-|---|---|---|
-| `kb-bert` (default) | included | `KB/bert-base-swedish-cased-ner`. Swedish-only, trained on formal text. |
-| `gliner` | `domherre[gliner]` | Zero-shot, multilingual, CPU-optimised. Change `labels` to detect anything. |
-| `presidio` | `domherre[presidio]` | Full PII framework. Bring your own configured `AnalyzerEngine`. |
-| `none` | included | Skips name detection. Regex only. |
+## Counting what was found
+
+`redact` returns just the frame. `redact_with_report` also returns counts, and `scan`
+counts without modifying anything:
 
 ```python
-kt.redact(df, "note", kt.Config(backend="gliner"))
+out, report = dh.redact_with_report(df, "note")
+report.rows, report.rows_with_pii
+report.names, report.personnummer, report.email
+report.extra            # {"[TELEFON]": 3} for extra_patterns
+
+# guard a pipeline that must never carry PII
+if dh.scan(df, ["note", "kommentar"]).rows_with_pii:
+    raise ValueError("PII reached a clean layer")
 ```
 
-### gliner
-
-```python
-config = kt.Config(
-    backend="gliner",
-    model="urchade/gliner_multi_pii-v1",   # default
-    labels=("person", "full name"),
-    min_score=0.5,
-    backend_options={"map_location": "cpu", "quantize": True},
-)
-```
-
-
-### Custom backends
-
-Anything with `load()` and `person_spans(texts) -> list[list[tuple[int, int]]]` works.
-A plain callable works too:
-
-```python
-def detector(texts: list[str]) -> list[list[tuple[int, int]]]:
-    return [[(m.start(), m.end()) for m in pattern.finditer(t)] for t in texts]
-
-kt.redact(df, "note", kt.Config(backend=detector))
-```
-
-Register by name to make it selectable like a builtin:
-
-```python
-kt.register_backend("mine", MyBackend)
-kt.available_backends()   # ['gliner', 'kb-bert', 'mine', 'none', 'presidio']
-```
-
-Backends are cached per (name, config), so a Deployment loads each model once.
+Ship these counts to your metrics. Without them you have no way to notice the model
+quietly stopped matching anything after a version bump.
 
 ## Config
 
 ```python
-config = kt.Config(
+config = dh.Config(
     name_tag="[NAMN]",
     personnummer_tag="[PERSONNUMMER]",
+    email_tag="[EMAIL]",
     suffix="_redacted",
+
     backend="kb-bert",       # or "gliner", "presidio", "none", or your own
     model=None,              # backend default, or a local path: "/models/ner"
     local_only=False,        # True = never hit the network, fail loudly if not cached
     num_threads=2,           # pin to your k8s cpu limit
     batch_size=32,
     min_score=0.0,           # raise to cut false-positive names, at the cost of misses
+    labels=("person",),      # gliner only
+    language="sv",
+    backend_options={},      # passed through to the backend
+
     redact_names=True,
     redact_personnummer=True,
+    redact_email=True,
     validate_personnummer=True,   # False = redact on shape alone, catches typo'd numbers
     enumerate_names=False,        # [NAMN_1], [NAMN_2] instead of flat [NAMN]
-    extra_patterns={},            # {"[EPOST]": r"\S+@\S+\.\w+"}
+    extra_patterns={},            # {"[TELEFON]": r"\b0\d{1,3}[- ]?\d{5,8}\b"}
 )
 
-kt.redact(df, "note", config)
+dh.redact(df, "note", config)
 ```
+
+`extra_patterns` is applied alongside the built-ins, and wins on an identical span —
+so `{"[EPOST]": r"\S+@\S+\.\w+"}` replaces the built-in `[EMAIL]` tag rather than
+fighting it. On partial overlap the longest span wins.
 
 ### enumerate_names
 
@@ -135,18 +129,73 @@ that two mentions refer to the same person:
 Numbering is per string, not per DataFrame. `[NAMN_1]` in row 1 and row 2 are not
 necessarily the same person — that would need identity resolution, which this does not do.
 
+## Backend models
+
+Name detection is pluggable. Personnummer and e-mail detection are always regex and
+are not affected by the backend choice. `kb-bert` is the default; it is the strongest
+Swedish-specific name model we have measured.
+
+| Backend | Install | Notes |
+|---|---|---|
+| `kb-bert` (default) | included | `KB/bert-base-swedish-cased-ner`. Swedish-only, trained on formal text. |
+| `gliner` | `domherre[gliner]` | Zero-shot, multilingual, CPU-optimised. Change `labels` to detect anything. |
+| `presidio` | `domherre[presidio]` | Full PII framework. Bring your own configured `AnalyzerEngine`. |
+| `none` | included | Skips name detection. Regex only. |
+
+```python
+dh.redact(df, "note", dh.Config(backend="gliner"))
+```
+
+`kb-bert` needs the `transformers` extra:
+
+```bash
+pip install domherre[transformers]
+```
+
+### gliner
+
+```python
+config = dh.Config(
+    backend="gliner",
+    model="urchade/gliner_multi_pii-v1",   # default
+    labels=("person", "full name"),
+    min_score=0.5,
+    backend_options={"map_location": "cpu", "quantize": True},
+)
+```
+
+### Custom backends
+
+Anything with `load()` and `person_spans(texts) -> list[list[tuple[int, int]]]` works.
+A plain callable works too:
+
+```python
+def detector(texts: list[str]) -> list[list[tuple[int, int]]]:
+    return [[(m.start(), m.end()) for m in pattern.finditer(t)] for t in texts]
+
+dh.redact(df, "note", dh.Config(backend=detector))
+```
+
+Register by name to make it selectable like a builtin:
+
+```python
+dh.register_backend("mine", MyBackend)
+dh.available_backends()   # ['gliner', 'kb-bert', 'mine', 'none', 'presidio']
+```
+
+Backends are cached per `(name, config)`, so a Deployment loads each model once.
+
 ## Service deployment
 
-Domherre is suited as deployemnts that can be run as services, we thus support models pre-baked into images.
 Load the model at startup so the first request doesn't pay for it:
 
 ```python
-kt.load(backend="kb-bert", num_threads=2, local_only=True)
+dh.load(backend="kb-bert", num_threads=2, local_only=True)
 ```
 
 Bake the weights into the image and set `local_only=True`. Otherwise every cold pod
-pulls ~440MB from HuggingFace, and a network blip becomes a runtime failure
-in the middle of a batch instead of a clear error at boot.
+pulls ~440MB from HuggingFace, and a network blip becomes a runtime failure in the
+middle of a batch instead of a clear error at boot.
 
 ```dockerfile
 RUN python -c "from transformers import pipeline; \
@@ -172,3 +221,6 @@ Not detected: reservnummer/interimsnummer (region-specific, no fixed national fo
 and personnummer with a typo'd control digit — set `validate_personnummer=False`
 to catch those, at the cost of redacting unrelated 10 and 12-digit numbers.
 
+## License
+
+MIT
