@@ -35,6 +35,12 @@
 {"text": "Skolan och förskolan har stängt för lov.", "expected": []}
 {"text": "Ingen dök upp till mötet i går.", "expected": []}
 {"text": "Det regnade hela helgen i södra Sverige.", "expected": []}
+{"text": "Patienten behandlas med Abilify.", "expected": []}
+{"text": "Läkaren ordinerade Abacavir/Lamivudine Accord.", "expected": []}
+{"text": "Hon hämtade ut Acetylcystein Viatris på apoteket.", "expected": []}
+{"text": "Patienten använder Actrapid FlexPen före måltid.", "expected": []}
+{"text": "Adrenalin Viatris förvaras i läkemedelsskåpet.", "expected": []}
+{"text": "Nästa dos Aimovig tas om fyra veckor.", "expected": []}
 {"text": "Boken är tillägnad Nguyễn Văn An, som gick bort förra året.", "expected": ["NAME"]}
 {"text": "Deltagare: Lars Åberg och Kalani Kahananui.", "expected": ["NAME", "NAME"]}
 {"text": "Både Zsófia Kovács och Abdirahman Warsame nekade till anklagelserna.", "expected": ["NAME", "NAME"]}
