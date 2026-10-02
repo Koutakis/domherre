@@ -8,6 +8,7 @@ in a polars DataFrame.
 
 - **Personnummer** — regex (date-shaped) + Luhn checksum.
 - **Names** — `KB/bert-base-swedish-cased-ner`, `PRS` entities only.
+- **Medicines** — names in the bundled FASS list are excluded from name redaction.
 - **E-mail** — regex, shape-based.
 
 ## Install
@@ -105,6 +106,7 @@ config = dh.Config(
     redact_names=True,
     redact_personnummer=True,
     redact_email=True,
+    exclude_fass_names=True,      # preserve detected names that match the FASS list
     validate_personnummer=True,   # False = redact on shape alone, catches typo'd numbers
     enumerate_names=False,        # [NAMN_1], [NAMN_2] instead of flat [NAMN]
     extra_patterns={},            # {"[TELEFON]": r"\b0\d{1,3}[- ]?\d{5,8}\b"}

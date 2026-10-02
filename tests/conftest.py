@@ -7,6 +7,7 @@ from domherre import backends as _backends
 
 # names the fake model "recognises" - enough to exercise span logic deterministically
 KNOWN_NAMES = [
+    "Abilify",
     "Engelbert Karlsson",
     "Anna Andersson",
     "Erik Bremstedt",
