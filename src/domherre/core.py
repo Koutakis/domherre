@@ -2,7 +2,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, TypeVar
 
-from . import _frames
+from . import _fass, _frames
 from .backends import DEFAULT_BACKEND, KB_BERT_MODEL, BackendConfig
 from .backends import find_person_spans
 from ._personnummer import find_personnummer
@@ -35,6 +35,7 @@ class Config:
     redact_names: bool = True
     redact_personnummer: bool = True
     redact_email: bool = True
+    exclude_fass_names: bool = True
     validate_personnummer: bool = True
     enumerate_names: bool = False
     extra_patterns: dict[str, str] = field(default_factory=dict)
@@ -157,6 +158,11 @@ def _redact_texts(texts: list[str], config: Config) -> tuple[list[str], Report]:
             backend=config.backend,
             config=config.backend_config(),
         )
+        if config.exclude_fass_names:
+            name_spans = [
+                _fass.exclude_spans(text, spans)
+                for text, spans in zip(subset, name_spans)
+            ]
     else:
         name_spans = [[] for _ in subset]
 

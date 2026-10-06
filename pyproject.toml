@@ -31,8 +31,11 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/domherre"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"fass_lakemedelsnamn_2026-09-23.csv" = "domherre/fass_lakemedelsnamn_2026-09-23.csv"
+
 [tool.hatch.build.targets.sdist]
-include = ["src/", "tests/", "README.md", "LICENSE"]
+include = ["src/", "tests/", "README.md", "LICENSE", "fass_lakemedelsnamn_2026-09-23.csv"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -95,6 +95,11 @@ def test_longest_span_wins_on_overlap():
     assert kt.redact_text("Anna Andersson kom") == "[NAMN] kom"
 
 
+def test_fass_medicine_is_not_redacted_as_name():
+    out = kt.redact_text("Anna Andersson tar Abilify")
+    assert out == "[NAMN] tar Abilify"
+
+
 def test_apply_spans_offsets():
     assert _apply_spans("abcdefghij", [(0, 5, "[A]"), (2, 7, "[B]"), (7, 10, "[C]")]) == "[A]fg[C]"
 
@@ -133,3 +138,10 @@ def test_name_clash_raises():
 def test_non_frame_raises():
     with pytest.raises(TypeError, match="polars or pandas"):
         kt.redact({"note": ["hej"]}, "note")
+
+def test_non_names_are_not_redacted():
+    detector = lambda texts: [[(0, len(text))] for text in texts]
+
+    for text in ("Han", "Hon", "Hen", "De", "Dem", "Patient", "Patienten"):
+        config = kt.Config(backend=detector)
+        assert kt.redact_text(text, config) == text
